@@ -1,81 +1,118 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { ISI_QUESTIONS, getISICategory } from "@/data/isi";
+import StarField from "@/components/StarField";
 
 interface ISIProps {
   onBack: () => void;
   onComplete: (score: number) => void;
 }
 
+const severityColors = ["hsl(155 60% 45%)", "hsl(42 90% 55%)", "hsl(25 85% 55%)", "hsl(0 72% 55%)"];
+
 const ISIAssessment = ({ onBack, onComplete }: ISIProps) => {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [result, setResult] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
 
   const handleAnswer = (val: number) => {
-    const newAnswers = [...answers, val];
-    setAnswers(newAnswers);
+    setSelected(val);
+    setTimeout(() => {
+      const newAnswers = [...answers, val];
+      setAnswers(newAnswers);
+      setSelected(null);
 
-    if (step < ISI_QUESTIONS.length - 1) {
-      setStep(step + 1);
-    } else {
-      const total = newAnswers.reduce((s, v) => s + v, 0);
-      setResult(total);
-    }
+      if (step < ISI_QUESTIONS.length - 1) {
+        setStep(step + 1);
+      } else {
+        setResult(newAnswers.reduce((s, v) => s + v, 0));
+      }
+    }, 300);
   };
 
   if (result !== null) {
     const cat = getISICategory(result);
-    const colorMap: Record<string, string> = {
-      success: "hsl(142 76% 36%)",
-      warning: "hsl(38 92% 50%)",
-      destructive: "hsl(0 84% 60%)",
-    };
-    const accentColor = colorMap[cat.color] || "hsl(142 76% 36%)";
+    const accent = severityColors[cat.severity];
+    const percentage = Math.round((result / 28) * 100);
 
     return (
-      <div className="min-h-screen px-4 py-8 max-w-md mx-auto animate-fade-up">
-        <div className="text-center mb-8">
-          <div className="font-serif text-6xl font-bold mb-2" style={{ color: accentColor }}>{result}</div>
-          <div className="inline-block px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: `${accentColor}18`, color: accentColor }}>
-            {cat.label}
-          </div>
-        </div>
-
-        <div className="rounded-xl bg-glass p-5 mb-4">
-          <div className="text-xs font-semibold text-muted-foreground tracking-wider mb-3">ESCALA ISI</div>
-          <div className="space-y-2">
-            {[
-              { range: "0–7", label: "Sem insônia", active: result <= 7 },
-              { range: "8–14", label: "Sublimiar", active: result >= 8 && result <= 14 },
-              { range: "15–21", label: "Moderada", active: result >= 15 && result <= 21 },
-              { range: "22–28", label: "Severa", active: result >= 22 },
-            ].map((r, i) => (
-              <div key={i} className={`flex justify-between items-center p-3 rounded-lg text-sm transition-all ${r.active ? "bg-primary/10 border border-primary/20" : ""}`}>
-                <span className={r.active ? "text-foreground font-medium" : "text-muted-foreground"}>{r.label}</span>
-                <span className="text-xs text-muted-foreground">{r.range}</span>
+      <div className="min-h-screen relative">
+        <StarField />
+        <div className="relative z-10 px-5 py-10 max-w-sm mx-auto">
+          {/* Score display */}
+          <div className="text-center mb-10 animate-fade-up">
+            <div className="relative inline-block mb-5">
+              <svg width="140" height="140" viewBox="0 0 140 140" className="transform -rotate-90">
+                <circle cx="70" cy="70" r="60" fill="none" stroke="hsl(225 15% 13%)" strokeWidth="6" />
+                <circle
+                  cx="70" cy="70" r="60" fill="none"
+                  stroke={accent}
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 60}`}
+                  strokeDashoffset={`${2 * Math.PI * 60 * (1 - percentage / 100)}`}
+                  className="transition-all duration-1000 ease-out"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-serif text-4xl font-bold" style={{ color: accent }}>{result}</span>
+                <span className="text-[10px] text-muted-foreground">/28</span>
               </div>
-            ))}
+            </div>
+            <div className="inline-block px-4 py-1.5 rounded-full text-[11px] font-semibold" style={{ background: `${accent}15`, color: accent }}>
+              {cat.label}
+            </div>
           </div>
+
+          {/* Scale */}
+          <div className="card-premium p-5 mb-4 animate-fade-up" style={{ animationDelay: "0.1s" }}>
+            <div className="text-[10px] font-semibold text-muted-foreground/70 tracking-[0.15em] mb-4">ESCALA ISI</div>
+            <div className="space-y-1.5">
+              {[
+                { range: "0–7", label: "Sem insônia clínica", sev: 0 },
+                { range: "8–14", label: "Insônia sublimiar", sev: 1 },
+                { range: "15–21", label: "Insônia moderada", sev: 2 },
+                { range: "22–28", label: "Insônia severa", sev: 3 },
+              ].map((r, i) => {
+                const active = cat.severity === r.sev;
+                return (
+                  <div key={i} className={`flex justify-between items-center px-3.5 py-2.5 rounded-xl text-[12px] transition-all ${
+                    active ? "bg-primary/8 border border-primary/15" : "border border-transparent"
+                  }`}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-2 h-2 rounded-full" style={{ background: severityColors[r.sev], opacity: active ? 1 : 0.3 }} />
+                      <span className={active ? "text-foreground font-medium" : "text-muted-foreground/70"}>{r.label}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/50 tabular-nums">{r.range}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Recommendation */}
+          {result >= 8 && (
+            <div className="card-premium p-5 mb-8 animate-fade-up" style={{ animationDelay: "0.15s" }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ background: "var(--gradient-subtle)" }}>
+                <span className="text-sm">💡</span>
+              </div>
+              <p className="text-[13px] text-foreground/80 leading-relaxed">
+                {result >= 15
+                  ? "Seu nível de insônia indica benefício significativo com o programa TCC-I de 6 semanas."
+                  : "Sua insônia é sublimiar, mas o programa pode prevenir cronificação e melhorar qualidade de vida."}
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={() => onComplete(result)}
+            className="btn-primary w-full text-[14px] animate-fade-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            {result >= 8 ? "Começar o Programa TCC-I" : "Explorar o Programa"}
+          </button>
         </div>
-
-        {result >= 8 && (
-          <div className="rounded-xl p-5 mb-6" style={{ background: "var(--gradient-subtle)", borderLeft: "3px solid hsl(var(--primary))" }}>
-            <p className="text-sm text-foreground leading-relaxed">
-              {result >= 15
-                ? "Seu nível de insônia indica benefício significativo com o programa TCC-I de 6 semanas."
-                : "Sua insônia é sublimiar, mas o programa pode ajudar a prevenir cronificação."}
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={() => onComplete(result)}
-          className="w-full py-4 rounded-xl font-semibold text-primary-foreground transition-all hover:scale-[1.02]"
-          style={{ background: "var(--gradient-primary)" }}
-        >
-          {result >= 8 ? "Começar o Programa TCC-I" : "Ver o Programa"}
-        </button>
       </div>
     );
   }
@@ -84,35 +121,57 @@ const ISIAssessment = ({ onBack, onComplete }: ISIProps) => {
   const progress = ((step + 1) / ISI_QUESTIONS.length) * 100;
 
   return (
-    <div className="min-h-screen px-4 py-8 max-w-md mx-auto">
-      <button onClick={onBack} className="flex items-center gap-1 text-muted-foreground text-sm mb-6 hover:text-foreground transition-colors">
-        <ChevronLeft className="w-4 h-4" /> Voltar
-      </button>
+    <div className="min-h-screen relative">
+      <StarField />
+      <div className="relative z-10 px-5 py-8 max-w-sm mx-auto">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-muted-foreground/70 text-[13px] mb-8 hover:text-foreground transition-colors">
+          <ChevronLeft className="w-4 h-4" /> Voltar
+        </button>
 
-      <div className="h-1 rounded-full bg-muted mb-6">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: "var(--gradient-primary)" }} />
-      </div>
+        {/* Progress */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="flex-1 h-[3px] rounded-full bg-muted/50">
+            <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${progress}%`, background: "var(--gradient-primary)" }} />
+          </div>
+          <span className="text-[11px] text-muted-foreground font-medium tabular-nums">{step + 1}/{ISI_QUESTIONS.length}</span>
+        </div>
 
-      <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-xs font-medium text-primary mb-4">
-        {q.title}
-      </div>
+        {/* Category tag */}
+        <div key={step}>
+          <div className="inline-block px-3 py-1 rounded-full bg-primary/8 border border-primary/10 mb-4 animate-slide-up">
+            <span className="text-[10px] text-primary/70 font-medium">{q.title}</span>
+          </div>
 
-      <h2 className="font-serif text-xl font-bold text-foreground mb-8 animate-slide-up" key={step}>
-        {q.question}
-      </h2>
+          <h2 className="font-serif text-[1.4rem] font-bold text-foreground leading-snug mb-10 animate-slide-up" style={{ animationDelay: "0.05s" }}>
+            {q.question}
+          </h2>
+        </div>
 
-      <div className="space-y-3" key={`opts-${step}`}>
-        {q.options.map((opt, i) => (
-          <button
-            key={i}
-            onClick={() => handleAnswer(i)}
-            className="w-full text-left p-4 rounded-xl border border-border bg-card/50 text-sm text-foreground transition-all hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98] animate-slide-up"
-            style={{ animationDelay: `${i * 0.05}s` }}
-          >
-            <span className="text-muted-foreground mr-2">{i}</span>
-            {opt}
-          </button>
-        ))}
+        {/* Options */}
+        <div className="space-y-2.5" key={`opts-${step}`}>
+          {q.options.map((opt, i) => (
+            <button
+              key={i}
+              onClick={() => handleAnswer(i)}
+              disabled={selected !== null}
+              className={`w-full text-left p-4 rounded-2xl border text-[13px] transition-all duration-300 animate-slide-up ${
+                selected === i
+                  ? "border-primary/50 bg-primary/10 scale-[0.98]"
+                  : "border-border/60 bg-card/40 hover:border-primary/25 hover:bg-card/70 active:scale-[0.98]"
+              }`}
+              style={{ animationDelay: `${i * 0.06}s` }}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 transition-all ${
+                  selected === i ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground/70"
+                }`}>
+                  {i}
+                </div>
+                <span className="text-foreground/90">{opt}</span>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

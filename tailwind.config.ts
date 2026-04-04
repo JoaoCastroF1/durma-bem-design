@@ -7,7 +7,7 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "1rem",
+      padding: "1.25rem",
       screens: {
         "2xl": "440px",
       },
@@ -66,6 +66,7 @@ export default {
           DEFAULT: "hsl(var(--violet))",
           light: "hsl(var(--violet-light))",
         },
+        lavender: "hsl(var(--lavender))",
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
