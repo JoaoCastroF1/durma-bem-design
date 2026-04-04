@@ -1,16 +1,30 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import LandingPage from "@/components/LandingPage";
+import ChronotypeQuiz from "@/components/ChronotypeQuiz";
+import ISIAssessment from "@/components/ISIAssessment";
+import ProgramView from "@/components/ProgramView";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
-  return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
-  );
+type View = "landing" | "quiz" | "isi" | "program";
+
+const Index = () => {
+  const [view, setView] = useState<View>("landing");
+
+  switch (view) {
+    case "quiz":
+      return <ChronotypeQuiz onBack={() => setView("landing")} onComplete={() => setView("program")} />;
+    case "isi":
+      return <ISIAssessment onBack={() => setView("landing")} onComplete={() => setView("program")} />;
+    case "program":
+      return <ProgramView onBack={() => setView("landing")} />;
+    default:
+      return (
+        <LandingPage
+          onStartQuiz={() => setView("quiz")}
+          onStartISI={() => setView("isi")}
+          onStartProgram={() => setView("program")}
+        />
+      );
+  }
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
